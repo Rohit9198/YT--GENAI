@@ -1,5 +1,5 @@
 const express = require("express")
-const authUser = require("../middlewares/auth.middleware")
+const {authUser} = require("../middlewares/auth.middleware")
 const interviewController = require("../controllers/interview.controller")
 const upload = require("../middlewares/file.middleware")
 
