@@ -112,10 +112,18 @@ const interviewReportSchema = new mongoose.Schema({
         min: 0,
         max: 100,
     },
-    technicalQuestions: [technicalQuestionsSchema],
-    behavioralQuestionSchema:[behavioralQuestionSchema],
+    technicalQuestions: [technicalQuestionSchema],
+    behavioralQuestion:[behavioralQuestionSchema],
     skillGaps: [skillGapSchema],
     preparationPlan:[preparationPlanSchema],
+    user:{
+        type:mongoose.Schema.Types.ObjectId,
+        ref:"users"
+    },
+    title:{
+        type:String,
+        required: [true,"Job title is required"]
+    }
 
 },{
     timestamps: true
