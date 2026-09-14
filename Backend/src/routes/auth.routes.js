@@ -2,13 +2,6 @@ const { Router } = require("express");
 const authController = require("../controllers/auth.controller");
 const authMiddleware = require("../middlewares/auth.middleware");
 
-// ADD THESE LINES
-console.log("registerUserController:", authController.registerUserController);
-console.log("loginUserController:", authController.loginUserController);
-console.log("logoutUserController:", authController.logoutUserController);
-console.log("getMeController:", authController.getMeController);
-console.log("authUser:", authMiddleware.authUser);
-
 const authRouter = Router();
 
 /**

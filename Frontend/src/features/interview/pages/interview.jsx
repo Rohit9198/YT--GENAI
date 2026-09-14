@@ -70,10 +70,23 @@ const Interview = () => {
 
 
 
-    if (loading || !report) {
+    if (loading) {
         return (
             <main className='loading-screen'>
                 <h1>Loading your interview plan...</h1>
+            </main>
+        )
+    }
+
+    if (!report) {
+        return (
+            <main className='loading-screen'>
+                <h1>Interview strategy report not found</h1>
+                <button 
+                    onClick={() => navigate('/')} 
+                    style={{ marginTop: '1rem', padding: '0.6rem 1.2rem', cursor: 'pointer', borderRadius: '8px', background: '#3b82f6', color: '#fff', border: 'none', fontWeight: 'bold' }}>
+                    Go Back Home
+                </button>
             </main>
         )
     }

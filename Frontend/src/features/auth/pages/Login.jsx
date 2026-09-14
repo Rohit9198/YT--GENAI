@@ -8,38 +8,50 @@ const Login = () => {
     const { loading, handleLogin } = useAuth()
     const navigate = useNavigate()
 
-    const [ email, setEmail ] = useState("")
-    const [ password, setPassword ] = useState("")
+    const [email, setEmail] = useState("")
+    const [password, setPassword] = useState("")
+    const [errorMessage, setErrorMessage] = useState("")
 
     const handleSubmit = async (e) => {
         e.preventDefault()
-        await handleLogin({email,password})
-        navigate('/')
+        setErrorMessage("")
+        const result = await handleLogin({ email, password })
+        if (result?.success) {
+            navigate('/')
+        } else {
+            setErrorMessage(result?.message || "Invalid email or password")
+        }
     }
 
-    if(loading){
+    if (loading) {
         return (<main><h1>Loading.......</h1></main>)
     }
-
 
     return (
         <main>
             <div className="form-container">
                 <h1>Login</h1>
+                {errorMessage && (
+                    <div style={{ color: "#ff4d4f", backgroundColor: "#fff2f0", padding: "8px 12px", borderRadius: "6px", fontSize: "14px", border: "1px solid #ffccc7", marginBottom: "8px" }}>
+                        {errorMessage}
+                    </div>
+                )}
                 <form onSubmit={handleSubmit}>
                     <div className="input-group">
                         <label htmlFor="email">Email</label>
                         <input
+                            value={email}
                             onChange={(e) => { setEmail(e.target.value) }}
-                            type="email" id="email" name='email' placeholder='Enter email address' />
+                            type="email" id="email" name='email' placeholder='Enter email address' required />
                     </div>
                     <div className="input-group">
                         <label htmlFor="password">Password</label>
                         <input
+                            value={password}
                             onChange={(e) => { setPassword(e.target.value) }}
-                            type="password" id="password" name='password' placeholder='Enter password' />
+                            type="password" id="password" name='password' placeholder='Enter password' required />
                     </div>
-                    <button className='button primary-button' >Login</button>
+                    <button className='button primary-button' type='submit'>Login</button>
                 </form>
                 <p>Don't have an account? <Link to={"/register"} >Register</Link> </p>
             </div>
