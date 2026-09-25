@@ -1,10 +1,10 @@
 const { GoogleGenAI, Type } = require("@google/genai")
-const puppeteer = require("puppeteer-core")
-const chromium = require("@sparticuz/chromium-min")
 
-const ai = new GoogleGenAI({
-    apiKey: process.env.GOOGLE_GENAI_API_KEY
-})
+function getAi() {
+    return new GoogleGenAI({
+        apiKey: process.env.GOOGLE_GENAI_API_KEY || ""
+    })
+}
 
 const interviewReportResponseSchema = {
     type: Type.OBJECT,
@@ -109,7 +109,7 @@ async function generateInterviewReport({ resume, selfDescription, jobDescription
                         Job Description: ${jobDescription}
 `
 
-    const response = await callGeminiWithRetry(() => ai.models.generateContent({
+    const response = await callGeminiWithRetry(() => getAi().models.generateContent({
         model: process.env.GEMINI_MODEL || "gemini-3.8-flash",
         contents: prompt,
         config: {
@@ -124,6 +124,8 @@ async function generateInterviewReport({ resume, selfDescription, jobDescription
 
 async function generatePdfFromHtml(htmlContent) {
     const isVercel = !!process.env.VERCEL
+    const puppeteer = require("puppeteer-core")
+    const chromium = require("@sparticuz/chromium-min")
 
     const executablePath = isVercel
         ? await chromium.executablePath(
@@ -187,7 +189,7 @@ async function generateResumePdf({ resume, selfDescription, jobDescription }) {
                         The resume should not be so lengthy, it should ideally be 1-2 pages long when converted to PDF. Focus on quality rather than quantity and make sure to include all the relevant information that can increase the candidate's chances of getting an interview call for the given job description.
                     `
 
-    const response = await callGeminiWithRetry(() => ai.models.generateContent({
+    const response = await callGeminiWithRetry(() => getAi().models.generateContent({
         model: process.env.GEMINI_MODEL || "gemini-3.8-flash",
         contents: prompt,
         config: {

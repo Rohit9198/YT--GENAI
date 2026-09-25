@@ -6,6 +6,10 @@ async function connectDB() {
     if (isConnected || mongoose.connection.readyState >= 1) {
         return;
     }
+    if (!process.env.MONGO_URI) {
+        console.warn("⚠️ [DB] Warning: MONGO_URI environment variable is not defined in this Vercel project.");
+        return;
+    }
     try {
         await mongoose.connect(process.env.MONGO_URI);
         isConnected = true;
