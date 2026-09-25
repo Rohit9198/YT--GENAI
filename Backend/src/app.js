@@ -20,6 +20,18 @@ const interviewRouter = require("./routes/interview.routes")
 app.use("/api/auth", authRouter)
 app.use("/api/interview", interviewRouter)
 
-
+/* error handling middleware */
+app.use((err, req, res, next) => {
+    if (err.name === "MulterError") {
+        if (err.code === "LIMIT_FILE_SIZE") {
+            return res.status(400).json({ message: "File size exceeds 5MB limit." })
+        }
+        return res.status(400).json({ message: err.message })
+    }
+    if (err) {
+        return res.status(err.status || 400).json({ message: err.message || "An unexpected error occurred." })
+    }
+    next()
+})
 
 module.exports = app

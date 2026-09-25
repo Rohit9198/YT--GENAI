@@ -13,7 +13,7 @@ export async function register({ username, email, password }) {
         })
         return response.data
     } catch (err) {
-        throw new Error(err.response?.data?.message || "Registration failed")
+        throw new Error(err.response?.data?.message || "Registration failed", { cause: err })
     }
 }
 
@@ -24,19 +24,17 @@ export async function login({ email, password }) {
         })
         return response.data
     } catch (err) {
-        throw new Error(err.response?.data?.message || "Invalid email or password")
+        throw new Error(err.response?.data?.message || "Invalid email or password", { cause: err })
     }
 }
 
 export async function logout() {
     try {
-
         const response = await api.get("/api/auth/logout")
-
         return response.data
-
     } catch (err) {
-
+        console.error("Logout request error:", err)
+        return null
     }
 }
 

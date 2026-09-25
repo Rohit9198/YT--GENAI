@@ -1,7 +1,7 @@
 import { getAllInterviewReports, generateInterviewReport, getInterviewReportById, generateResumePdf } from "../services/interview.api"
-import { useContext, useEffect } from "react"
+import { useContext, useEffect, useCallback } from "react"
 import { InterviewContext } from "../interview.context"
-import { useParams } from "react-router"
+import { useParams } from "react-router-dom"
 
 
 export const useInterview = () => {
@@ -15,9 +15,10 @@ export const useInterview = () => {
 
     const { loading, setLoading, report, setReport, reports, setReports } = context
 
-    const generateReport = async ({ jobDescription, selfDescription, resumeFile }) => {
+    const generateReport = useCallback(async ({ jobDescription, selfDescription, resumeFile }) => {
         setLoading(true)
         let response = null
+        let errorMessage = null
         try {
             response = await generateInterviewReport({ jobDescription, selfDescription, resumeFile })
             if (response?.interviewReport) {
@@ -25,18 +26,19 @@ export const useInterview = () => {
             }
         } catch (error) {
             console.error("Error generating interview report:", error)
+            errorMessage = error.message || "Failed to generate interview report."
         } finally {
             setLoading(false)
         }
 
-        return response?.interviewReport || null
-    }
+        return { data: response?.interviewReport || null, error: errorMessage }
+    }, [setLoading, setReport])
 
-    const getReportById = async (interviewId) => {
+    const getReportById = useCallback(async (id) => {
         setLoading(true)
         let response = null
         try {
-            response = await getInterviewReportById(interviewId)
+            response = await getInterviewReportById(id)
             if (response?.interviewReport) {
                 setReport(response.interviewReport)
             }
@@ -46,9 +48,9 @@ export const useInterview = () => {
             setLoading(false)
         }
         return response?.interviewReport || null
-    }
+    }, [setLoading, setReport])
 
-    const getReports = async () => {
+    const getReports = useCallback(async () => {
         setLoading(true)
         let response = null
         try {
@@ -63,9 +65,9 @@ export const useInterview = () => {
         }
 
         return response?.interviewReports || []
-    }
+    }, [setLoading, setReports])
 
-    const getResumePdf = async (interviewReportId) => {
+    const getResumePdf = useCallback(async (interviewReportId) => {
         setLoading(true)
         try {
             const response = await generateResumePdf({ interviewReportId })
@@ -84,7 +86,7 @@ export const useInterview = () => {
         } finally {
             setLoading(false)
         }
-    }
+    }, [setLoading])
 
     useEffect(() => {
         if (interviewId) {
@@ -92,7 +94,7 @@ export const useInterview = () => {
         } else {
             getReports()
         }
-    }, [ interviewId ])
+    }, [ interviewId, getReportById, getReports ])
 
     return { loading, report, reports, generateReport, getReportById, getReports, getResumePdf }
 

@@ -71,6 +71,35 @@ const interviewReportResponseSchema = {
     required: ["matchScore", "technicalQuestions", "behavioralQuestions", "skillGaps", "preparationPlan", "title"]
 }
 
+function parseAiJsonResponse(text) {
+    let clean = (text || "").trim()
+    if (clean.startsWith("```json")) {
+        clean = clean.replace(/^```json\s*/, "").replace(/```$/, "").trim()
+    } else if (clean.startsWith("```")) {
+        clean = clean.replace(/^```\s*/, "").replace(/```$/, "").trim()
+    }
+    return JSON.parse(clean)
+}
+
+async function callGeminiWithRetry(apiFn, maxRetries = 5, delayMs = 3000) {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            return await apiFn()
+        } catch (err) {
+            const isTransient = err.status === 503 || err.status === 429 ||
+                (err.message && (err.message.includes("503") || err.message.includes("high demand") || err.message.includes("UNAVAILABLE")))
+            
+            if (isTransient && attempt < maxRetries) {
+                console.warn(`[Gemini API] Temporary high demand / 503 error on attempt ${attempt}/${maxRetries}. Retrying in ${delayMs}ms...`)
+                await new Promise(resolve => setTimeout(resolve, delayMs))
+                delayMs *= 2
+                continue
+            }
+            throw err
+        }
+    }
+}
+
 async function generateInterviewReport({ resume, selfDescription, jobDescription }) {
 
     const prompt = `Generate an interview report for a candidate with the following details:
@@ -79,36 +108,42 @@ async function generateInterviewReport({ resume, selfDescription, jobDescription
                         Job Description: ${jobDescription}
 `
 
-    const response = await ai.models.generateContent({
-        model: process.env.GEMINI_MODEL,
+    const response = await callGeminiWithRetry(() => ai.models.generateContent({
+        model: process.env.GEMINI_MODEL || "gemini-3.8-flash",
         contents: prompt,
         config: {
             responseMimeType: "application/json",
             responseSchema: interviewReportResponseSchema,
         }
-    })
+    }))
 
-    return JSON.parse(response.text)
+    return parseAiJsonResponse(response.text)
 
 }
 
 async function generatePdfFromHtml(htmlContent) {
-    const browser = await puppeteer.launch()
-    const page = await browser.newPage();
-    await page.setContent(htmlContent, { waitUntil: "networkidle0" })
-
-    const pdfBuffer = await page.pdf({
-        format: "A4", margin: {
-            top: "20mm",
-            bottom: "20mm",
-            left: "15mm",
-            right: "15mm"
-        }
+    const browser = await puppeteer.launch({
+        headless: true,
+        args: ["--no-sandbox", "--disable-setuid-sandbox"]
     })
+    try {
+        const page = await browser.newPage()
+        await page.setContent(htmlContent, { waitUntil: "networkidle0" })
 
-    await browser.close()
+        const pdfBuffer = await page.pdf({
+            format: "A4",
+            margin: {
+                top: "20mm",
+                bottom: "20mm",
+                left: "15mm",
+                right: "15mm"
+            }
+        })
 
-    return pdfBuffer
+        return pdfBuffer
+    } finally {
+        await browser.close()
+    }
 }
 
 async function generateResumePdf({ resume, selfDescription, jobDescription }) {
@@ -137,16 +172,16 @@ async function generateResumePdf({ resume, selfDescription, jobDescription }) {
                         The resume should not be so lengthy, it should ideally be 1-2 pages long when converted to PDF. Focus on quality rather than quantity and make sure to include all the relevant information that can increase the candidate's chances of getting an interview call for the given job description.
                     `
 
-    const response = await ai.models.generateContent({
-        model: process.env.GEMINI_MODEL,
+    const response = await callGeminiWithRetry(() => ai.models.generateContent({
+        model: process.env.GEMINI_MODEL || "gemini-3.8-flash",
         contents: prompt,
         config: {
             responseMimeType: "application/json",
             responseSchema: resumePdfResponseSchema,
         }
-    })
+    }))
 
-    const jsonContent = JSON.parse(response.text)
+    const jsonContent = parseAiJsonResponse(response.text)
 
     const pdfBuffer = await generatePdfFromHtml(jsonContent.html)
 

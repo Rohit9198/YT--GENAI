@@ -13,9 +13,8 @@ async function generateInterViewReportController(req, res) {
         let resumeText = ""
         if (req.file && req.file.buffer) {
             try {
-                const pdfParser = new pdfParse.PDFParse(Uint8Array.from(req.file.buffer))
-                const pdfData = await pdfParser.getText()
-                resumeText = pdfData?.text || pdfData || ""
+                const pdfData = await pdfParse(req.file.buffer)
+                resumeText = pdfData?.text || ""
             } catch (pdfErr) {
                 console.error("PDF parse error:", pdfErr)
             }
@@ -55,10 +54,12 @@ async function generateInterViewReportController(req, res) {
         })
     } catch (err) {
         console.error("Error generating interview report:", err)
-        const statusCode = err.status || err.statusCode || (err.message && err.message.includes("503") ? 503 : 500)
-        return res.status(statusCode).json({
-            message: err.message || "Failed to generate interview report due to server error."
-        })
+        const statusCode = err.status || err.statusCode || (err.message && (err.message.includes("503") || err.message.includes("UNAVAILABLE")) ? 503 : 500)
+        const is503 = statusCode === 503
+        const message = is503
+            ? "The Gemini AI model is currently experiencing high demand. Please try again in a few moments."
+            : (err.message || "Failed to generate interview report due to server error.")
+        return res.status(statusCode).json({ message })
     }
 }
 
@@ -117,7 +118,10 @@ async function generateResumePdfController(req, res) {
     try {
         const { interviewReportId } = req.params
 
-        const interviewReport = await interviewReportModel.findById(interviewReportId)
+        const interviewReport = await interviewReportModel.findOne({
+            _id: interviewReportId,
+            user: req.user.id
+        })
 
         if (!interviewReport) {
             return res.status(404).json({
