@@ -7,9 +7,20 @@ const app = express()
 app.use(express.json())
 app.use(cookieParser())
 app.use(cors({
-    origin: "http://localhost:5173",
+    origin: (origin, callback) => {
+        // Allow requests with no origin (like mobile apps, curl, postman) or any origin in dev/prod
+        callback(null, true)
+    },
     credentials: true
 }))
+
+/* root & health check */
+app.get("/", (req, res) => {
+    res.status(200).json({ status: "success", message: "YT-GENAI Backend API is running successfully." })
+})
+app.get("/api", (req, res) => {
+    res.status(200).json({ status: "success", message: "YT-GENAI Backend API is running successfully." })
+})
 
 /* require all the routes here */
 const authRouter = require("./routes/auth.routes")
